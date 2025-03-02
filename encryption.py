@@ -1,6 +1,6 @@
 from cryptography.fernet import Fernet
 from config import ENCRYPTION_KEY_PATH
-import Pyfhel  # Homomorphic encryption library
+from phe import paillier  # Python-Paillier for homomorphic encryption
 
 def generate_key():
     """
@@ -35,16 +35,14 @@ def encrypt_file(file_path):
 
 def homomorphic_encrypt(data):
     """
-    Encrypt data using homomorphic encryption.
+    Encrypt data using homomorphic encryption (Python-Paillier).
     """
-    HE = Pyfhel.Pyfhel()
-    HE.contextGen(scheme='bfv', n=4096, t_bits=20)
-    HE.keyGen()
-    encrypted_data = HE.encryptInt(data)
-    return encrypted_data, HE
+    public_key, private_key = paillier.generate_paillier_keypair()
+    encrypted_data = public_key.encrypt(data)
+    return encrypted_data, private_key
 
-def homomorphic_decrypt(encrypted_data, HE):
+def homomorphic_decrypt(encrypted_data, private_key):
     """
-    Decrypt data using homomorphic encryption.
+    Decrypt data using homomorphic encryption (Python-Paillier).
     """
-    return HE.decryptInt(encrypted_data)
+    return private_key.decrypt(encrypted_data)
