@@ -1,20 +1,43 @@
-from flask import Flask, render_template
-import threading
-from main import file_monitor
-from auth_utils import auth
+from flask import Flask, render_template, redirect, url_for, request, session, flash
+from auth_utils import authenticate
+from monitoring import FileMonitor
+from alert_system import log_event
+import os
 
 app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY', 'your_secret_key')
+
+# Initialize file monitor
+file_monitor = FileMonitor()
 
 @app.route('/')
-@auth.login_required
 def dashboard():
-    status = "Monitoring..." if file_monitor.observer.is_alive() else "Stopped"
-    alerts = "No alerts" if not file_monitor.sensitive_files else "Ransomware detected!"
-    return render_template('dashboard.html', status=status, alerts=alerts)
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    logs = ""
+    if os.path.exists('system_log.log'):
+        with open('system_log.log', 'r') as f:
+            logs = f.read()
+    return render_template('dashboard.html', logs=logs)
 
-def run_web_interface():
-    app.run(port=5000)
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if authenticate(username, password):
+            session['username'] = username
+            return redirect(url_for('dashboard'))
+        else:
+            error = "Invalid credentials. Please try again."
+    return render_template('login.html', error=error)
+
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    return redirect(url_for('login'))
 
 if __name__ == "__main__":
-    web_thread = threading.Thread(target=run_web_interface)
-    web_thread.start()
+    file_monitor.start()
+    app.run(port=5000)

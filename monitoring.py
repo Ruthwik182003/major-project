@@ -4,7 +4,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import psutil
 from tagging import tag_sensitive_files
-from logging_utils import log_event
+from alert_system import log_event
 
 class FileMonitor(FileSystemEventHandler):
     def __init__(self):
@@ -32,7 +32,7 @@ class FileMonitor(FileSystemEventHandler):
 
 def monitor_processes():
     """
-    Monitors system processes for suspicious activity (e.g., high CPU or disk usage).
+    Monitor system processes for suspicious activity.
     """
     while True:
         suspicious = False
@@ -40,8 +40,7 @@ def monitor_processes():
             try:
                 cpu_usage = proc.info['cpu_percent']
                 io_counters = proc.info['io_counters']
-                # Example thresholds for suspicious activity
-                if cpu_usage > 80 or io_counters.write_bytes > 1e8:  # 100 MB written
+                if cpu_usage > 80 or io_counters.write_bytes > 1e8:  # Example thresholds
                     suspicious = True
                     log_event(f"Suspicious process detected: {proc.info['name']} (PID: {proc.info['pid']})")
                     print(f"Suspicious process detected: {proc.info['name']} (PID: {proc.info['pid']})")

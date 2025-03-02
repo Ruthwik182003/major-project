@@ -4,10 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ransomware Detection Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
     <h1>Ransomware Detection Dashboard</h1>
     <p>System Status: <span id="status">Monitoring...</span></p>
     <p>Alerts: <span id="alerts">No alerts</span></p>
+    <h2>Sensitive Files</h2>
+    <ul id="sensitive-files">
+        <!-- Sensitive files will be dynamically populated here -->
+    </ul>
+    <h2>System Logs</h2>
+    <pre id="logs">{{ logs }}</pre>
 </body>
 </html>

@@ -1,8 +1,10 @@
 import smtplib
-from twilio.rest import Client
-from config import EMAIL_ADDRESS, EMAIL_PASSWORD, ALERT_EMAIL, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,TWILIO_PHONE_NUMBER
+from config import EMAIL_ADDRESS, EMAIL_PASSWORD, ALERT_EMAIL, LOG_FILE
 
-def send_email_alert():
+def send_alert():
+    """
+    Send an email alert to the administrator.
+    """
     try:
         with smtplib.SMTP('smtp.example.com', 587) as smtp:
             smtp.starttls()
@@ -11,18 +13,13 @@ def send_email_alert():
             body = 'Ransomware activity has been detected on the system.'
             msg = f'Subject: {subject}\n\n{body}'
             smtp.sendmail(EMAIL_ADDRESS, ALERT_EMAIL, msg)
-            print("Email alert sent to administrator.")
+            log_event("Email alert sent to administrator.")
     except Exception as e:
-        print(f"Failed to send email alert: {e}")
+        log_event(f"Failed to send email alert: {e}")
 
-def send_sms_alert():
-    try:
-        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-        client.messages.create(
-            body="Ransomware detected on the system!",
-            from_=TWILIO_PHONE_NUMBER,
-            to=ALERT_EMAIL  # Assuming ALERT_EMAIL is a phone number for SMS
-        )
-        print("SMS alert sent to administrator.")
-    except Exception as e:
-        print(f"Failed to send SMS alert: {e}")
+def log_event(message):
+    """
+    Log system events to a file.
+    """
+    with open(LOG_FILE, 'a') as f:
+        f.write(f"{time.ctime()} - {message}\n")
