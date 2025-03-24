@@ -1,30 +1,33 @@
+# detection.py
 import pickle
+import numpy as np
+from config import MODEL_PATHS
 
-import psutil
 
-from config import MODEL_PATH
+class ThreatDetector:
+    def __init__(self):
+        self.scaler = self._load_model(MODEL_PATHS['scaler'])
+        self.model = self._load_model(MODEL_PATHS['model'])
+        self.metadata = self._load_model(MODEL_PATHS['metadata'])
+        self.feature_names = self.metadata['feature_names']
 
-def load_model():
-    """
-    Load the pre-trained ransomware detection model.
-    """
-    with open(MODEL_PATH, 'rb') as f:
-        model = pickle.load(f)
-    return model
+    def _load_model(self, path):
+        with open(path, 'rb') as f:
+            return pickle.load(f)
 
-def detect_ransomware():
-    """
-    Detect ransomware using the pre-trained model.
-    """
-    model = load_model()
-    features = extract_features()  # Extract features for detection
-    prediction = model.predict([features])
-    return prediction[0] == 1  # 1 indicates ransomware
+    def prepare_features(self, system_metrics):
+        """Prepare and scale features in correct order"""
+        features = []
+        for feature in self.feature_names:
+            features.append(system_metrics[feature])
+        return self.scaler.transform([features])
 
-def extract_features():
-    """
-    Extract system features for ransomware detection.
-    """
-    cpu_usage = psutil.cpu_percent()
-    disk_io = psutil.disk_io_counters()
-    return [cpu_usage, disk_io.read_bytes, disk_io.write_bytes]
+    def detect(self, system_metrics):
+        """Run full detection pipeline"""
+        try:
+            features = self.prepare_features(system_metrics)
+            prediction = self.model.predict(features)
+            return prediction[0] == 1  # True if ransomware
+        except Exception as e:
+            print(f"Detection error: {e}")
+            return False

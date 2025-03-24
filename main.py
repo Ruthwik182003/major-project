@@ -1,43 +1,49 @@
-#!/usr/bin/env python3
+# main.py
 import time
-from monitoring import FileMonitor, monitor_processes
-from detection import detect_ransomware
+from monitoring import FileMonitor, monitor_processes, get_system_metrics
+from detection import ThreatDetector
 from alert_system import send_alert, log_event
 from encryption import encrypt_file
-from tagging import tag_sensitive_files
 
 
 class RansomwareDefender:
     def __init__(self):
         self.file_monitor = FileMonitor()
+        self.detector = ThreatDetector()
         self.running = False
 
     def start(self):
-        """Start all monitoring services"""
+        """Start monitoring services"""
         self.running = True
         self.file_monitor.start()
-        log_event("System started: Monitoring active")
+        log_event("System started")
 
         try:
             while self.running:
                 self._check_threats()
-                time.sleep(5)  # Reduce CPU usage
+                time.sleep(5)
         except KeyboardInterrupt:
             self.stop()
 
     def _check_threats(self):
-        """Core threat detection logic"""
-        if monitor_processes() or detect_ransomware():
-            log_event("Ransomware behavior detected!")
-            self._trigger_protection()
+        """Check for ransomware using both models and heuristics"""
+        system_metrics = get_system_metrics()
+        if (self.detector.detect(system_metrics) or
+                monitor_processes()):
+            self._trigger_protection(system_metrics)
 
-    def _trigger_protection(self):
-        """Execute protective measures"""
+    def _trigger_protection(self, metrics):
+        """Execute protection measures"""
         send_alert()
+        log_event(f"Ransomware detected! Metrics: {metrics}")
+
         for file_path in self.file_monitor.sensitive_files:
-            if tag_sensitive_files(file_path):  # Double-check sensitivity
+            try:
                 encrypt_file(file_path)
-                log_event(f"Protected: {file_path}")
+                metrics['encryption_calls'] += 1
+                log_event(f"Encrypted: {file_path}")
+            except Exception as e:
+                log_event(f"Encryption failed for {file_path}: {str(e)}")
 
     def stop(self):
         """Graceful shutdown"""
