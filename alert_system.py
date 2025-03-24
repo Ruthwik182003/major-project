@@ -1,4 +1,5 @@
 import smtplib
+import time
 from config import EMAIL_ADDRESS, EMAIL_PASSWORD, ALERT_EMAIL, LOG_FILE
 
 def send_alert():

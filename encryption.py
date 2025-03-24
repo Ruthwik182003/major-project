@@ -1,5 +1,7 @@
 from cryptography.fernet import Fernet
 from config import ENCRYPTION_KEY_PATH
+from alert_system import send_alert, log_event
+
 from phe import paillier  # Python-Paillier for homomorphic encryption
 
 def generate_key():

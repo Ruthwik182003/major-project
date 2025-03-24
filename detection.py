@@ -1,4 +1,7 @@
 import pickle
+
+import psutil
+
 from config import MODEL_PATH
 
 def load_model():
