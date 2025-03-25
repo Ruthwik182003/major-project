@@ -4,7 +4,66 @@ from monitoring import FileMonitor, monitor_processes, get_system_metrics
 from detection import ThreatDetector
 from alert_system import send_alert, log_event
 from encryption import encrypt_file
+from flask import Flask, render_template, redirect, url_for, request, session, flash
+from auth_utils import authenticate
+from monitoring import FileMonitor
+from alert_system import log_event
+import os
 
+app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY', 'your-strong-secret-key-here')
+
+# Initialize file monitor
+file_monitor = FileMonitor()
+
+
+@app.route('/')
+def dashboard():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    try:
+        with open('system_log.log', 'r') as f:
+            logs = f.read()
+    except FileNotFoundError:
+        logs = "No log file found"
+
+    return render_template('dashboard.html', logs=logs)
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if 'username' in session:
+        return redirect(url_for('dashboard'))
+
+    error = None
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if authenticate(username, password):
+            session['username'] = username
+            return redirect(url_for('dashboard'))
+        error = "Invalid credentials"
+
+    return render_template('login.html', error=error)
+
+
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    return redirect(url_for('login'))
+
+
+def run_server():
+    file_monitor.start()
+    try:
+        app.run(host='0.0.0.0', port=5000, debug=True)
+    except KeyboardInterrupt:
+        file_monitor.stop()
+    except Exception as e:
+        log_event(f"Server error: {str(e)}")
+    finally:
+        file_monitor.stop()
 
 class RansomwareDefender:
     def __init__(self):
@@ -58,3 +117,4 @@ class RansomwareDefender:
 if __name__ == "__main__":
     defender = RansomwareDefender()
     defender.start()
+    run_server()
