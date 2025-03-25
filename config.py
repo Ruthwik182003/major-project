@@ -1,24 +1,47 @@
-# config.py
+# config.py (
 import os
+from werkzeug.security import generate_password_hash
 
-# Model paths
+# User storage (consider using a database in production)
+USER_DB = 'users.db'  # File to store user credentials
+SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-here')
+
+# Initialize user storage if it doesn't exist
+if not os.path.exists(USER_DB):
+    with open(USER_DB, 'w') as f:
+        # Default admin user
+        default_users = {
+            "admin": generate_password_hash("admin123")
+        }
+        f.write(str(default_users))
+
+# Model paths (if you're using ML)
 MODEL_DIR = os.path.join(os.path.dirname(__file__), 'models')
 MODEL_PATHS = {
-    'model': 'models/best_ransomware_model.pkl',  # Updated to existing file
-    'scaler': 'models/ransomware_scaler.pkl',
-    'metadata': 'models/model_metadata.pkl'
+    'model': 'models/best_ransomware_model.pkl',
+    'scaler': 'models/ransomware_scaler.pkl'
 }
 
-# Rest of your config remains the same...
+# Security settings
+SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-here')
+USERS = {
+    "admin": generate_password_hash("admin_password")  # Auto-hashes the password
+}
 
-# Rest of your existing config...
-SENSITIVE_ENTITIES = ["PERSON", "ORG", "GPE", "EMAIL", "CARD_NUMBER"]
+# File monitoring
 SENSITIVE_EXTENSIONS = ['.docx', '.pdf', '.xls', '.xlsx', '.txt', '.csv']
-SENSITIVE_KEYWORDS = ['confidential', 'secret', 'password', 'ssn', 'credit card']
-ENCRYPTION_KEY_PATH = 'encryption_key.key'
+SENSITIVE_KEYWORDS = ['confidential', 'secret', 'password']
+
+# Email alerts
+EMAIL_SETTINGS = {
+    'address': 'anjananju2715@gmail.com',
+    'password': 'your-email-password',  # Consider using app-specific password
+    'recipient': 'anjananju2715@gmail.com',
+    'smtp_server': 'smtp.gmail.com',
+    'smtp_port': 587
+}
+
+# System paths
 LOG_FILE = 'system_log.log'
 BACKUP_DIR = 'backups'
-EMAIL_ADDRESS = 'anjananju2715@gmail.com'
-EMAIL_PASSWORD = 'anju2713'
-ALERT_EMAIL = 'anjananju2715@gmail.com'
-SECRET_KEY = 'your_secret_key'
+ENCRYPTION_KEY_PATH = 'encryption_key.key'

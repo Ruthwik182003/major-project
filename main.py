@@ -1,120 +1,195 @@
-# main.py
+#!/usr/bin/env python3
 import time
-from monitoring import FileMonitor, monitor_processes, get_system_metrics
-from detection import ThreatDetector
-from alert_system import send_alert, log_event
-from encryption import encrypt_file
+import psutil
+from threading import Thread
+from flask import Flask
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+import config
+from config import SECRET_KEY, USERS, SENSITIVE_EXTENSIONS, EMAIL_SETTINGS, LOG_FILE, MODEL_PATHS
+
+
+# Replace the Config class with direct imports
+app = Flask(__name__)
+app.secret_key = SECRET_KEY
+
+# When you need configuration:
+
+# ======================
+# Core Monitoring System
+# ======================
+class FileMonitor(FileSystemEventHandler):
+    def __init__(self):
+        super().__init__()
+        self.sensitive_files = set()
+        self.observer = Observer()
+        self.file_access_count = 0
+
+    def on_modified(self, event):
+        if not event.is_directory:
+            self.file_access_count += 1
+            file_path = event.src_path
+            if self._is_sensitive(file_path):
+                self.sensitive_files.add(file_path)
+                self.log_event(f"Sensitive file modified: {file_path}")
+
+    def _is_sensitive(self, file_path):
+        return any(file_path.endswith(ext) for ext in config.SENSITIVE_EXTENSIONS)
+
+    def start(self):
+        self.observer.schedule(self, path='.', recursive=True)
+        self.observer.start()
+        self.log_event("File monitoring started")
+
+    def stop(self):
+        self.observer.stop()
+        self.observer.join()
+        self.log_event("File monitoring stopped")
+
+    def log_event(self, message):
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        with open(config.LOG_FILE, 'a') as f:
+            f.write(f"[{timestamp}] {message}\n")
+
+
+# ======================
+# Threat Detection
+# ======================
+class ThreatDetector:
+    def __init__(self):
+        self.model = None  # Load your ML model here
+        self.log_event("Threat detector initialized")
+
+    def detect(self, system_metrics):
+        # Implement your detection logic
+        return False  # Placeholder
+
+    def log_event(self, message):
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        with open(config.LOG_FILE, 'a') as f:
+            f.write(f"[{timestamp}] {message}\n")
+
+
+# ======================
+# Main Application
+# ======================
+app = Flask(__name__)
+app.secret_key = config.SECRET_KEY
+
+file_monitor = FileMonitor()
+threat_detector = ThreatDetector()
+
+
+class RansomwareDefender:
+    def __init__(self):
+        self.running = False
+
+    def start(self):
+        self.running = True
+        file_monitor.start()
+        self.log_event("Defense system started")
+
+        while self.running:
+            self._check_threats()
+            time.sleep(5)
+
+    def _check_threats(self):
+        if threat_detector.detect(self._get_system_metrics()):
+            self._trigger_protection()
+
+    def _get_system_metrics(self):
+        return {
+            'cpu_usage': psutil.cpu_percent(),
+            'memory_usage': psutil.virtual_memory().percent,
+            'file_access': file_monitor.file_access_count
+        }
+
+    def _trigger_protection(self):
+        self.log_event("Ransomware detected! Taking protective measures")
+        # Implement protection logic here
+
+    def stop(self):
+        self.running = False
+        file_monitor.stop()
+        self.log_event("Defense system stopped")
+
+    def log_event(self, message):
+        file_monitor.log_event(message)
+
+
+# ======================
+# Web Interface Routes
+# ======================
+
+# app.py
 from flask import Flask, render_template, redirect, url_for, request, session, flash
-from auth_utils import authenticate
-from monitoring import FileMonitor
-from alert_system import log_event
-import os
+from auth_utils import register_user, authenticate
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'your-strong-secret-key-here')
-
-# Initialize file monitor
-file_monitor = FileMonitor()
+app.secret_key = 'your-secret-key'  # Should match config.py
 
 
-@app.route('/')
-def dashboard():
-    if 'username' not in session:
-        return redirect(url_for('login'))
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
 
-    try:
-        with open('system_log.log', 'r') as f:
-            logs = f.read()
-    except FileNotFoundError:
-        logs = "No log file found"
+        if password != confirm_password:
+            flash('Passwords do not match!', 'error')
+        elif register_user(username, password):
+            flash('Registration successful! Please login.', 'success')
+            return redirect(url_for('login'))
+        else:
+            flash('Username already exists!', 'error')
 
-    return render_template('dashboard.html', logs=logs)
+    return render_template('register.html')
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if 'username' in session:
-        return redirect(url_for('dashboard'))
-
-    error = None
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+
         if authenticate(username, password):
             session['username'] = username
+            flash('Login successful!', 'success')
             return redirect(url_for('dashboard'))
-        error = "Invalid credentials"
+        else:
+            flash('Invalid username or password', 'error')
 
-    return render_template('login.html', error=error)
+    return render_template('login.html')
 
 
 @app.route('/logout')
 def logout():
     session.pop('username', None)
+    flash('You have been logged out', 'info')
     return redirect(url_for('login'))
 
 
-def run_server():
-    file_monitor.start()
-    try:
-        app.run(host='0.0.0.0', port=5000, debug=True)
-    except KeyboardInterrupt:
-        file_monitor.stop()
-    except Exception as e:
-        log_event(f"Server error: {str(e)}")
-    finally:
-        file_monitor.stop()
+@app.route('/dashboard')
+def dashboard():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    return render_template('dashboard.html', username=session['username'])
 
-class RansomwareDefender:
-    def __init__(self):
-        self.file_monitor = FileMonitor()
-        self.detector = ThreatDetector()
-        self.running = False
 
-    def start(self):
-        """Start monitoring services"""
-        self.running = True
-        self.file_monitor.start()
-        log_event("System started")
-
-        try:
-            while self.running:
-                self._check_threats()
-                time.sleep(5)
-        except KeyboardInterrupt:
-            self.stop()
-        except Exception as e:
-            log_event(f"Unexpected error: {str(e)}")
-            self.stop()
-
-    def _check_threats(self):
-        """Check for ransomware using both models and heuristics"""
-        system_metrics = get_system_metrics(self.file_monitor)  # Pass the instance
-        if (self.detector.detect(system_metrics) or
-                monitor_processes()):
-            self._trigger_protection(system_metrics)
-
-    def _trigger_protection(self, metrics):
-        """Execute protection measures"""
-        send_alert()
-        log_event(f"Ransomware detected! Metrics: {metrics}")
-
-        for file_path in self.file_monitor.sensitive_files:
-            try:
-                encrypt_file(file_path)
-                metrics['encryption_calls'] += 1
-                log_event(f"Encrypted: {file_path}")
-            except Exception as e:
-                log_event(f"Encryption failed for {file_path}: {str(e)}")
-
-    def stop(self):
-        """Graceful shutdown"""
-        self.running = False
-        self.file_monitor.stop()
-        log_event("System stopped")
+# ======================
+# Startup Logic
+# ======================
+def run_defender():
+    defender = RansomwareDefender()
+    defender.start()
 
 
 if __name__ == "__main__":
-    defender = RansomwareDefender()
-    defender.start()
-    run_server()
+    # Start defender in background thread
+    defender_thread = Thread(target=run_defender)
+    defender_thread.daemon = True
+    defender_thread.start()
+
+    # Start web interface
+    app.run(host='0.0.0.0', port=5000, debug=True)
