@@ -24,10 +24,13 @@ class RansomwareDefender:
                 time.sleep(5)
         except KeyboardInterrupt:
             self.stop()
+        except Exception as e:
+            log_event(f"Unexpected error: {str(e)}")
+            self.stop()
 
     def _check_threats(self):
         """Check for ransomware using both models and heuristics"""
-        system_metrics = get_system_metrics()
+        system_metrics = get_system_metrics(self.file_monitor)  # Pass the instance
         if (self.detector.detect(system_metrics) or
                 monitor_processes()):
             self._trigger_protection(system_metrics)

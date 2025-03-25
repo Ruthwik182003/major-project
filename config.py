@@ -1,9 +1,15 @@
 # config.py
+import os
+
+# Model paths
+MODEL_DIR = os.path.join(os.path.dirname(__file__), 'models')
 MODEL_PATHS = {
-    'scaler': 'ransomware_scaler.pkl',
-    'model': 'ransomware_detection_model.pkl',
-    'metadata': 'model_metadata.pkl'
+    'model': 'models/best_ransomware_model.pkl',  # Updated to existing file
+    'scaler': 'models/ransomware_scaler.pkl',
+    'metadata': 'models/model_metadata.pkl'
 }
+
+# Rest of your config remains the same...
 
 # Rest of your existing config...
 SENSITIVE_ENTITIES = ["PERSON", "ORG", "GPE", "EMAIL", "CARD_NUMBER"]
