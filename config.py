@@ -35,7 +35,7 @@ SENSITIVE_KEYWORDS = ['confidential', 'secret', 'password']
 # Email alerts
 EMAIL_SETTINGS = {
     'address': 'anjananju2715@gmail.com',
-    'password': 'your-email-password',  # Consider using app-specific password
+    'password': 'anju2713',  # Consider using app-specific password
     'recipient': 'anjananju2715@gmail.com',
     'smtp_server': 'smtp.gmail.com',
     'smtp_port': 587

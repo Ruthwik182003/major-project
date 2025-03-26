@@ -12,21 +12,24 @@ body {
     border: none;
 }
 
-.logs-container {
-    height: 500px;
-    overflow-y: auto;
+/* Log container styling */
+.log-container {
     background-color: #f8f9fa;
-    border-radius: 4px;
-    padding: 10px;
+    border-radius: 0 0 4px 4px;
 }
 
 .log-entry {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Courier New', monospace;
     font-size: 0.85rem;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 5px;
+    white-space: pre-wrap;
 }
 
-.list-group-item {
-    word-break: break-all;
+/* Scrollbar styling */
+.log-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.log-container::-webkit-scrollbar-thumb {
+    background-color: #adb5bd;
+    border-radius: 4px;
 }

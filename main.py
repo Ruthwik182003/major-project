@@ -6,6 +6,7 @@ from flask import Flask
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import config
+import os
 from config import SECRET_KEY, USERS, SENSITIVE_EXTENSIONS, EMAIL_SETTINGS, LOG_FILE, MODEL_PATHS
 
 
@@ -170,11 +171,25 @@ def logout():
     return redirect(url_for('login'))
 
 
-@app.route('/dashboard')
+@app.route('/')
 def dashboard():
     if 'username' not in session:
         return redirect(url_for('login'))
-    return render_template('dashboard.html', username=session['username'])
+
+    log_content = []
+    log_path = os.path.join(app.root_path, 'system_log.log')
+
+    try:
+        if os.path.exists(log_path):
+            with open(log_path, 'r') as f:
+                log_content = f.readlines()[-100:]  # Get last 100 lines
+    except Exception as e:
+        flash(f"Error reading logs: {str(e)}", 'error')
+
+    return render_template('dashboard.html',
+                           logs=reversed(log_content),  # Newest first
+                           sensitive_files=list(file_monitor.sensitive_files),
+                           username=session['username'])
 
 @app.route('/')
 def home():
