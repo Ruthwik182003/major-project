@@ -176,7 +176,9 @@ def dashboard():
         return redirect(url_for('login'))
     return render_template('dashboard.html', username=session['username'])
 
-
+@app.route('/')
+def home():
+    return redirect(url_for('login'))  # Or your preferred default route
 # ======================
 # Startup Logic
 # ======================
